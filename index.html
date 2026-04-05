@@ -253,8 +253,9 @@
     const MAX_BODIES = 600;
 
     function spawnLetters(text, rect) {
-      // Measure cumulative character x-positions using canvas
       ctx.font = `17px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif`;
+      const app    = document.getElementById('app').getBoundingClientRect();
+      const midX   = (app.left + app.right) / 2;
       let cx = rect.left;
       let delay = 0;
 
@@ -275,19 +276,21 @@
               spawnY + (Math.random() - 0.5) * 3,
               Math.max(cw, 7), FONT_SIZE + 2,
               {
-                restitution: 0.25,
-                friction:    0.88,
-                frictionAir: 0.012,
+                restitution: 0.08,
+                friction:    0.95,
+                frictionAir: 0.018,
                 angle: (Math.random() - 0.5) * 0.5,
               }
             );
             body.label = capturedChar;
 
+            // Slight horizontal bias toward center → forms mountain peak
+            const centerPull = (midX - spawnX) * 0.025;
             Body.setVelocity(body, {
-              x: (Math.random() - 0.5) * 3,
+              x: (Math.random() - 0.5) * 2 + centerPull,
               y:  Math.random() * 2,
             });
-            Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.15);
+            Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.1);
 
             World.add(world, body);
             letters.push({ body, char: capturedChar });
@@ -339,14 +342,19 @@
       return { x: avgX, y: topY - 7 };
     }
 
-    function drawPerson(x, y) {
+    // Person climbs smoothly — not a physics body
+    let pX = 0, pY = 0, pReady = false;
+
+    function drawPerson(x, y, ts) {
       const bodyH = 15;
-      const headR = 4.5;
+      const headR = 4;
+      // Subtle step cycle — only perceptible when climbing
+      const step  = Math.sin(ts * 0.005) * 2.5;
 
       ctx.save();
       ctx.strokeStyle = '#111';
       ctx.fillStyle   = '#fff';
-      ctx.lineWidth   = 1.8;
+      ctx.lineWidth   = 1.6;
       ctx.lineCap     = 'round';
       ctx.lineJoin    = 'round';
 
@@ -362,20 +370,20 @@
       ctx.lineTo(x, y);
       ctx.stroke();
 
-      // arms
+      // arms (slight swing)
       ctx.beginPath();
-      ctx.moveTo(x - 9, y - bodyH + 6);
-      ctx.lineTo(x + 9, y - bodyH + 6);
+      ctx.moveTo(x - 8 + step * 0.5, y - bodyH + 5);
+      ctx.lineTo(x + 8 + step * 0.5, y - bodyH + 5);
       ctx.stroke();
 
-      // legs
+      // legs (alternating step)
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineTo(x - 7, y + 11);
+      ctx.lineTo(x - 6 + step, y + 10);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineTo(x + 7, y + 11);
+      ctx.lineTo(x + 6 - step, y + 10);
       ctx.stroke();
 
       ctx.restore();
@@ -407,9 +415,20 @@
         ctx.restore();
       }
 
-      // Draw stick figure
+      // Person smoothly climbs to the top of the pile
       const pos = getPileTop();
-      if (pos) drawPerson(pos.x, pos.y);
+      if (pos) {
+        if (!pReady) {
+          // First appearance: start at the bottom of the screen
+          pX = pos.x;
+          pY = canvas.height - 50;
+          pReady = true;
+        }
+        // Lerp toward pile top — slow climb up, quicker left/right centering
+        pX += (pos.x - pX) * 0.06;
+        pY += (pos.y - pY) * 0.04;
+        drawPerson(pX, pY, ts);
+      }
 
       requestAnimationFrame(frame);
     }
