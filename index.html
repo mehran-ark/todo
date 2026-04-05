@@ -342,19 +342,18 @@
       return { x: avgX, y: topY - 7 };
     }
 
-    // Person climbs smoothly — not a physics body
+    // Person always stands on top of the pile — not a physics body
     let pX = 0, pY = 0, pReady = false;
 
     function drawPerson(x, y, ts) {
-      const bodyH = 15;
-      const headR = 4;
-      // Subtle step cycle — only perceptible when climbing
-      const step  = Math.sin(ts * 0.005) * 2.5;
+      const bodyH = 26;
+      const headR = 6;
+      const step  = Math.sin(ts * 0.006) * 4; // walking legs
 
       ctx.save();
       ctx.strokeStyle = '#111';
       ctx.fillStyle   = '#fff';
-      ctx.lineWidth   = 1.6;
+      ctx.lineWidth   = 2;
       ctx.lineCap     = 'round';
       ctx.lineJoin    = 'round';
 
@@ -370,20 +369,20 @@
       ctx.lineTo(x, y);
       ctx.stroke();
 
-      // arms (slight swing)
+      // arms
       ctx.beginPath();
-      ctx.moveTo(x - 8 + step * 0.5, y - bodyH + 5);
-      ctx.lineTo(x + 8 + step * 0.5, y - bodyH + 5);
+      ctx.moveTo(x - 11, y - bodyH + 8);
+      ctx.lineTo(x + 11, y - bodyH + 8);
       ctx.stroke();
 
-      // legs (alternating step)
+      // legs (alternating)
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineTo(x - 6 + step, y + 10);
+      ctx.lineTo(x - 8 + step, y + 14);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x, y);
-      ctx.lineTo(x + 6 - step, y + 10);
+      ctx.lineTo(x + 8 - step, y + 14);
       ctx.stroke();
 
       ctx.restore();
@@ -415,18 +414,16 @@
         ctx.restore();
       }
 
-      // Person smoothly climbs to the top of the pile
+      // Person always on top of pile — snaps quickly so it looks like walking on letters
       const pos = getPileTop();
       if (pos) {
         if (!pReady) {
-          // First appearance: start at the bottom of the screen
           pX = pos.x;
-          pY = canvas.height - 50;
+          pY = pos.y;
           pReady = true;
         }
-        // Lerp toward pile top — slow climb up, quicker left/right centering
-        pX += (pos.x - pX) * 0.06;
-        pY += (pos.y - pY) * 0.04;
+        pX += (pos.x - pX) * 0.08;
+        pY += (pos.y - pY) * 0.18; // fast enough to stay on the rising pile
         drawPerson(pX, pY, ts);
       }
 
